@@ -14,8 +14,6 @@ import { z } from "zod";
 export const { fieldContext, formContext, useFieldContext, useFormContext } =
   createFormHookContexts();
 
-// Allow us to bind components to the form to keep type safety but reduce production boilerplate
-// Define this once to have a generator of consistent form instances throughout your app
 const { useAppForm } = createFormHook({
   fieldComponents: {
     InputField,
@@ -28,35 +26,40 @@ const { useAppForm } = createFormHook({
   formContext,
 });
 
+const defaultValues = {
+  username: "",
+  jobTitle: "",
+  address: "",
+  phone: "",
+  email: "",
+  summary: "",
+  experience: [
+    {
+      jobTitle: "",
+      company: "",
+      summary: "",
+      bullets: [""],
+      startDate: "Jan 2024",
+      endDate: "Jan 2025",
+    },
+  ],
+  education: [
+    {
+      school: "",
+      degree: "",
+      startDate: "Jan 2024",
+      endDate: "Jan 2025",
+      summary: "",
+    },
+  ],
+  skills: [""],
+};
+
+export type TFormData = typeof defaultValues;
+
 const CVBuilder = () => {
   const form = useAppForm({
-    defaultValues: {
-      username: "",
-      jobTitle: "",
-      address: "",
-      phone: "",
-      email: "",
-      summary: "",
-      experience: [
-        {
-          jobTitle: "",
-          company: "",
-          summary: "",
-          bullets: [""],
-          startDate: "Jan 2024",
-          endDate: "Jan 2025",
-        },
-      ],
-      education: [
-        {
-          school: "",
-          degree: "",
-          startDate: "Jan 2024",
-          endDate: "Jan 2025",
-          summary: "",
-        },
-      ],
-    },
+    defaultValues,
     validators: {
       // Pass a schema or function to validate
       onChange: z.object({
@@ -85,6 +88,7 @@ const CVBuilder = () => {
             summary: z.string(),
           }),
         ),
+        skills: z.array(z.string()),
       }),
     },
     onSubmit: ({ value }) => {
@@ -105,16 +109,10 @@ const CVBuilder = () => {
     if (lastInputRef.current) {
       lastInputRef.current.focus();
     }
-    console.log(form.state.values.experience);
   }, [bulletsLength]);
 
   return (
     <form
-      // onKeyDown={(e) => {
-      //   if (e.key === "Enter") {
-      //     e.preventDefault();
-      //   }
-      // }}
       className='flex flex-col gap-4 font-sans px-24'
       onSubmit={(e) => {
         e.preventDefault();
@@ -404,6 +402,44 @@ const CVBuilder = () => {
         </form.Field>
       </div>
 
+      <div className='flex flex-col items-center gap-1 mb-2 border-b-2 border-section-border'>
+        <Label className='text-muted-foreground self-center'>Skills</Label>
+        <form.Field name='skills' mode='array'>
+          {(parentField) => {
+            return (
+              <div className='flex flex-row gap-2 py-2'>
+                {parentField.state.value.map((_, i) => {
+                  return (
+                    <div key={i}>
+                      <form.AppField name={`skills[${i}]`}>
+                        {(field) => (
+                          <field.InputField
+                            className='h-5'
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                parentField.pushValue("");
+                              }
+                              if (
+                                e.key === "Backspace" &&
+                                parentField.state.value[i] === ""
+                              ) {
+                                parentField.removeValue(i);
+                              }
+                            }}
+                            variant='borderless'
+                            placeholder='Skill'
+                          />
+                        )}
+                      </form.AppField>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          }}
+        </form.Field>
+      </div>
       <form.AppForm>
         <form.SubmitButton />
       </form.AppForm>
